@@ -1,43 +1,33 @@
 #!/bin/bash
 set -e
 
-echo "ShopSavvy Express.js Middleware Tests"
-echo "======================================"
-
-echo "Running structural checks..."
-echo ""
-
-echo "Checking required files..."
-REQUIRED="src/index.ts package.json README.md"
-MISSING=0
-for f in $REQUIRED; do
-  if [ ! -f "$f" ]; then
-    echo "  Missing: $f"
-    MISSING=$((MISSING + 1))
-  fi
-done
-if [ $MISSING -eq 0 ]; then
-  echo "  All required files present"
-else
-  echo "  $MISSING required files missing"
+if [ ! -f package.json ] || ! grep -q '"name": "express-shopsavvy"' package.json; then
+  echo "WARNING: run test.sh from the express-shopsavvy directory"
   exit 1
 fi
 
-echo "Checking TypeScript syntax..."
-if command -v bun &> /dev/null; then
-  if bun build --no-bundle src/index.ts --outfile /tmp/express-shopsavvy-check.js > /dev/null 2>&1; then
-    echo "  TypeScript syntax OK"
-  else
-    echo "  TypeScript syntax error"
-    exit 1
-  fi
-  rm -f /tmp/express-shopsavvy-check.js
-fi
+echo "ShopSavvy Express.js Middleware Tests"
+echo "======================================"
 
-echo "Checking exports..."
-if command -v bun &> /dev/null; then
-  bun -e "const m = require('./src/index.ts'); if (!m.createShopSavvyRouter) throw 'missing createShopSavvyRouter'; if (!m.createShopSavvyClient) throw 'missing createShopSavvyClient'; console.log('  Exports valid')" 2>/dev/null || echo "  Export check skipped (needs bun install)"
-fi
+echo "Installing dependencies..."
+bun install --silent
+
+echo "Typechecking..."
+bun run typecheck
+
+echo "Running tests (real Express + real SDK against a local API stand-in)..."
+bun run test
+
+echo "Building (CJS + ESM + types)..."
+bun run build
+for f in dist/index.js dist/index.mjs dist/index.d.ts dist/index.d.mts; do
+  [ -f "$f" ] || { echo "  MISSING: $f"; exit 1; }
+done
+
+echo "Checking the built package loads in Node (CJS and ESM)..."
+node -e 'const m = require("./dist/index.js"); if (typeof m.createShopSavvyRouter !== "function" || typeof m.createShopSavvyClient !== "function") process.exit(1)'
+node --input-type=module -e 'const m = await import("./dist/index.mjs"); if (typeof m.createShopSavvyRouter !== "function") process.exit(1)'
+echo "  OK"
 
 echo ""
-echo "All unit checks passed"
+echo "All checks passed"
