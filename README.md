@@ -22,12 +22,15 @@ app.listen(3000)
 ```
 
 This adds:
-- `GET /shopsavvy/search?q=AirPods+Pro` — Search products
+- `GET /shopsavvy/search?q=AirPods+Pro&limit=10&offset=0` — Search products
 - `GET /shopsavvy/products/:identifier` — Product details
-- `GET /shopsavvy/products/:identifier/offers` — Compare prices
-- `GET /shopsavvy/products/:identifier/history?start=...&end=...` — Price history
-- `GET /shopsavvy/deals` — Trending deals
-- `GET /shopsavvy/usage` — API usage
+- `GET /shopsavvy/products/:identifier/offers?retailer=amazon.com` — Compare prices
+- `GET /shopsavvy/products/:identifier/history?start=2026-01-01&end=2026-01-31` — Price history (dates as `YYYY-MM-DD`)
+- `GET /shopsavvy/deals?sort=hot&limit=10` — Deals. `sort` is one of `hot`, `new`, `top-hour`, `top-day`, `top-week`; also accepts `offset`, `category`, `retailer`, `tag`, `grade`, `min_price`, `max_price`
+
+`GET /shopsavvy/usage` (your API account's usage) is only mounted when you pass `exposeUsage: true`, since these routes are public.
+
+Works with Express 4 and 5.
 
 ### Option 2: Use the client directly
 
@@ -59,6 +62,18 @@ app.use(createShopSavvyRouter({ apiKey: "ss_live_..." }))
 ```
 
 Get your API key at [shopsavvy.com/data](https://shopsavvy.com/data).
+
+## Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `apiKey` | `SHOPSAVVY_API_KEY` env var | Your ShopSavvy API key |
+| `prefix` | `/shopsavvy` | Path prefix for the routes |
+| `baseUrl` | ShopSavvy API | Override the API base URL |
+| `timeout` | `30000` | Request timeout in milliseconds |
+| `exposeUsage` | `false` | Mount `GET {prefix}/usage` |
+
+`createShopSavvyClient(apiKey?, { baseUrl?, timeout? })` returns the [`@shopsavvy/sdk`](https://www.npmjs.com/package/@shopsavvy/sdk) client.
 
 ## Custom Prefix
 
