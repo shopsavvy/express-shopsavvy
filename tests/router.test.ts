@@ -28,6 +28,33 @@ beforeAll(async () => {
       if (url.pathname === "/v1/deals") {
         return Response.json({ success: true, deals: [], pagination: { total: 0, has_more: false, limit: 10, offset: 0 } })
       }
+      if (url.pathname === "/v1/products/offers/history") {
+        // The real shape: one entry per product, each offer carrying its own history
+        // (newest first; `currency` null / `availability` absent when unknown).
+        return Response.json({
+          success: true,
+          data: [{
+            title: "Sony WH-1000XM5",
+            shopsavvy: "abc123",
+            category: null,
+            offers: [
+              {
+                id: "o1",
+                retailer: "Amazon",
+                price: 299.99,
+                currency: "USD",
+                seller: null,
+                history: [
+                  { timestamp: "2026-01-02T00:00:00Z", price: 299.99, currency: "USD", availability: "in" },
+                  { timestamp: "2025-12-20T00:00:00Z", price: 329.99, currency: null },
+                ],
+              },
+              { id: "o2", retailer: "eBay", price: 210, currency: "USD", seller: "audio_reseller", history: [] },
+            ],
+          }],
+          meta: { credits_used: 2, credits_remaining: 998 },
+        })
+      }
       if (url.pathname === "/v1/usage") {
         return Response.json({ success: true, data: { current_period: { credits_used: 1 } } })
       }
@@ -86,8 +113,17 @@ describe("createShopSavvyRouter", () => {
   })
 
   test("history sends start/end (the params the API reads)", async () => {
-    const { status } = await get("/shopsavvy/products/B09XS7JWHH/history?start=2026-01-01&end=2026-01-31")
+    const { status, body } = await get("/shopsavvy/products/B09XS7JWHH/history?start=2026-01-01&end=2026-01-31")
     expect(status).toBe(200)
+    // products -> offers -> history passes through untouched
+    expect(body.data).toHaveLength(1)
+    expect(body.data[0].shopsavvy).toBe("abc123")
+    expect(body.data[0].offers.map((o: any) => o.id)).toEqual(["o1", "o2"])
+    expect(body.data[0].offers[0].history).toEqual([
+      { timestamp: "2026-01-02T00:00:00Z", price: 299.99, currency: "USD", availability: "in" },
+      { timestamp: "2025-12-20T00:00:00Z", price: 329.99, currency: null },
+    ])
+    expect(body.data[0].offers[1].history).toEqual([])
     expect(seen[0]).toMatchObject({
       path: "/v1/products/offers/history",
       params: { ids: "B09XS7JWHH", start: "2026-01-01", end: "2026-01-31" },

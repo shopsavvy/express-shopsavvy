@@ -25,7 +25,7 @@ This adds:
 - `GET /shopsavvy/search?q=AirPods+Pro&limit=10&offset=0` — Search products
 - `GET /shopsavvy/products/:identifier` — Product details
 - `GET /shopsavvy/products/:identifier/offers?retailer=amazon.com` — Compare prices
-- `GET /shopsavvy/products/:identifier/history?start=2026-01-01&end=2026-01-31` — Price history (dates as `YYYY-MM-DD`)
+- `GET /shopsavvy/products/:identifier/history?start=2026-01-01&end=2026-01-31` — Price history (dates as `YYYY-MM-DD`). `data` has one entry per product, each with its `offers`, and each offer carries its own `history` array of `{ timestamp, price, currency, availability }` points, newest first
 - `GET /shopsavvy/deals?sort=hot&limit=10` — Deals. `sort` is one of `hot`, `new`, `top-hour`, `top-day`, `top-week`; also accepts `offset`, `category`, `retailer`, `tag`, `grade`, `min_price`, `max_price`
 
 `GET /shopsavvy/usage` (your API account's usage) is only mounted when you pass `exposeUsage: true`, since these routes are public.
